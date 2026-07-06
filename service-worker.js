@@ -17,7 +17,7 @@
    automaticamente na próxima abertura.
    ====================================================================== */
 
-const CACHE_VERSION = 'martins-v2';
+const CACHE_VERSION = 'martins-v3';
 
 const ARQUIVOS_APP_SHELL = [
   './',
