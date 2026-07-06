@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+  <title>Martins · Oficina Mecânica</title>
+  <meta name="description" content="Aplicativo de gestão para oficina mecânica: ordens de serviço, orçamentos, clientes, estoque e financeiro.">
+  <meta name="theme-color" content="#1C1E22">
+
+  <!-- PWA: permite instalar o app na tela inicial e serve de base para o
+       empacotamento como APK (Capacitor/TWA usam esses mesmos metadados). -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Martins">
+  <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+  <!-- Fontes: condensada para identidade visual, legível para o corpo -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Banco de dados local (IndexedDB) + utilitários compartilhados —
+       todos com defer, executados em ordem, antes de qualquer módulo de
+       tela (o defer evita bloquear o parser/primeira renderização). -->
+  <script src="js/db/database.js" defer></script>
+  <script src="js/db/clientes.js" defer></script>
+  <script src="js/db/veiculos.js" defer></script>
+  <script src="js/db/pecas.js" defer></script>
+  <script src="js/db/maoDeObra.js" defer></script>
+  <script src="js/db/ordens.js" defer></script>
+  <script src="js/db/orcamentos.js" defer></script>
+  <script src="js/db/despesas.js" defer></script>
+  <script src="js/db/configuracoes.js" defer></script>
+  <script src="js/core/utils.js" defer></script>
+  <script src="js/core/dicionarioPecas.js" defer></script>
+</head>
+<body>
+
+  <div id="app" class="app">
+
+    <!-- ===================== HEADER ===================== -->
+    <header class="app-header">
+      <div class="header-row">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">M</span>
+          <span class="brand-name">MARTINS</span>
+        </div>
+        <button class="header-search-btn" id="btn-busca-global" type="button" aria-label="Pesquisar em todo o aplicativo">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="11" cy="11" r="7"/>
+            <path d="m21 21-4.3-4.3" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+      <p class="brand-tagline">Gestão de Oficina Mecânica</p>
+      <div class="header-stripe" aria-hidden="true"></div>
+    </header>
+
+    <!-- ===================== CONTEÚDO ===================== -->
+    <main class="app-main" id="app-main">
+
+      <section class="view is-active" data-view="inicio" id="view-inicio">
+        <div class="empty-state">
+          <div class="empty-state-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6">
+              <path d="M3 11.5 12 4l9 7.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h2>Bem-vindo à Martins</h2>
+          <p>Esta é a base do aplicativo. Use o menu abaixo para navegar entre as áreas da oficina.</p>
+        </div>
+      </section>
+
+      <section class="view" data-view="ordens" id="view-ordens">
+        <!-- Conteúdo montado dinamicamente por js/modules/ordens.js -->
+      </section>
+
+      <section class="view" data-view="orcamentos" id="view-orcamentos">
+        <!-- Conteúdo montado dinamicamente por js/modules/orcamentos.js -->
+      </section>
+
+      <section class="view" data-view="clientes" id="view-clientes">
+        <!-- Conteúdo montado dinamicamente por js/modules/clientes.js -->
+      </section>
+
+      <section class="view" data-view="estoque" id="view-estoque">
+        <!-- Conteúdo montado dinamicamente por js/modules/estoque.js -->
+      </section>
+
+      <section class="view" data-view="financeiro" id="view-financeiro">
+        <!-- Conteúdo montado dinamicamente por js/modules/financeiro.js -->
+      </section>
+
+    </main>
+
+    <!-- ===================== NAVEGAÇÃO ===================== -->
+    <nav class="bottom-nav" id="bottom-nav" aria-label="Navegação principal">
+      <button class="nav-item is-active" data-view="inicio" type="button">
+        <svg class="nav-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M3 11.5 12 4l9 7.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="nav-label">Início</span>
+      </button>
+
+      <button class="nav-item" data-view="ordens" type="button">
+        <svg class="nav-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="5" y="4" width="14" height="17" rx="1.5"/>
+          <path d="M9 3.5h6a1 1 0 0 1 1 1V6H8V4.5a1 1 0 0 1 1-1Z"/>
+          <path d="M8.5 11h7M8.5 14.5h7M8.5 18h4" stroke-linecap="round"/>
+        </svg>
+        <span class="nav-label">Ordens</span>
+      </button>
+
+      <button class="nav-item" data-view="orcamentos" type="button">
+        <svg class="nav-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M7 3.5h7l4 4V19a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 19V5A1.5 1.5 0 0 1 7 3.5Z" stroke-linejoin="round"/>
+          <path d="M14 3.5V7a1 1 0 0 0 1 1h3.5" stroke-linejoin="round"/>
+          <path d="M9 12.5h6M9 15.5h6M9 9.5h2.5" stroke-linecap="round"/>
+        </svg>
+        <span class="nav-label">Orçamentos</span>
+      </button>
+
+      <button class="nav-item" data-view="clientes" type="button">
+        <svg class="nav-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="8" r="3.2"/>
+          <path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6" stroke-linecap="round"/>
+        </svg>
+        <span class="nav-label">Clientes</span>
+      </button>
+
+      <button class="nav-item" data-view="estoque" type="button">
+        <svg class="nav-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M4 7.5 12 4l8 3.5-8 3.5-8-3.5Z" stroke-linejoin="round"/>
+          <path d="M4 7.5V16l8 3.5 8-3.5V7.5" stroke-linejoin="round"/>
+          <path d="M12 11v8.5" />
+        </svg>
+        <span class="nav-label">Estoque</span>
+      </button>
+
+      <button class="nav-item" data-view="financeiro" type="button">
+        <svg class="nav-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="12" r="8"/>
+          <path d="M12 7.5v9M9.5 9.8c0-1.3 1.1-2 2.5-2s2.5.7 2.5 1.8c0 2.6-5 1.3-5 3.9 0 1.1 1.1 1.8 2.5 1.8s2.5-.7 2.5-2" stroke-linecap="round"/>
+        </svg>
+        <span class="nav-label">Financeiro</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <!-- app.js primeiro: define o objeto App que os módulos abaixo usam
+       para se registrar (App.modules.register). Módulos de tela vêm
+       depois, também com defer, nessa ordem. -->
+  <script src="js/app.js" defer></script>
+  <script src="js/modules/clientes.js" defer></script>
+  <script src="js/modules/ordens.js" defer></script>
+  <script src="js/modules/orcamentos.js" defer></script>
+  <script src="js/modules/financeiro.js" defer></script>
+  <script src="js/modules/leitorNota.js" defer></script>
+  <script src="js/modules/estoque.js" defer></script>
+  <script src="js/modules/buscaGlobal.js" defer></script>
+</body>
+</html>
