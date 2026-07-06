@@ -58,7 +58,7 @@ const LeitorNotaFiscal = (() => {
      -------------------------------------------------------------------- */
   const CHAVE_API_KEY = 'leitorNotaApiKey';
   const CHAVE_MODELO = 'leitorNotaModelo';
-  const MODELO_PADRAO = 'claude-sonnet-5';
+  const MODELO_PADRAO = 'gemini-2.5-flash';
 
   const LIMITE_LADO_MAIOR_PX = 2000;   // redimensiona fotos grandes antes de enviar
   const QUALIDADE_JPEG = 0.9;
@@ -565,9 +565,10 @@ Priorize precisão acima de tudo: se um número estiver ilegível, borrado ou am
   }
 
   /* --------------------------------------------------------------------
-     Chamada à IA (Claude API — Anthropic), direto do dispositivo.
+     Chamada à IA (Gemini API — Google), direto do dispositivo.
      A chave fica salva só localmente (IndexedDB) e nunca é enviada a
-     lugar nenhum além da própria Anthropic.
+     lugar nenhum além do próprio Google. Usa o tier gratuito da API do
+     Gemini (sem cartão de crédito, com limite diário de requisições).
      -------------------------------------------------------------------- */
   async function chamarIA(imagens) {
     const apiKey = await ConfiguracoesDB.obter(CHAVE_API_KEY);
@@ -578,52 +579,64 @@ Priorize precisão acima de tudo: se um número estiver ilegível, borrado ou am
     }
 
     const blocosImagem = imagens.map((img) => ({
-      type: 'image',
-      source: { type: 'base64', media_type: img.mediaType, data: img.base64 },
+      inlineData: { mimeType: img.mediaType, data: img.base64 },
     }));
 
     const corpo = {
-      model: modelo || MODELO_PADRAO,
-      max_tokens: 8192,
-      system: PROMPT_SISTEMA,
-      messages: [
+      systemInstruction: { parts: [{ text: PROMPT_SISTEMA }] },
+      contents: [
         {
           role: 'user',
-          content: [...blocosImagem, { type: 'text', text: promptUsuario(imagens.length) }],
+          parts: [...blocosImagem, { text: promptUsuario(imagens.length) }],
         },
       ],
+      generationConfig: {
+        maxOutputTokens: 8192,
+        responseMimeType: 'application/json',
+      },
     };
 
+    const modeloFinal = modelo || MODELO_PADRAO;
     let resposta;
     try {
-      resposta = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify(corpo),
-      });
+      resposta = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${modeloFinal}:generateContent`,
+        {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            'x-goog-api-key': apiKey,
+          },
+          body: JSON.stringify(corpo),
+        }
+      );
     } catch (erroRede) {
       throw new Error('Não foi possível conectar ao serviço de IA. Verifique sua conexão com a internet e tente novamente.');
     }
 
     if (!resposta.ok) {
-      if (resposta.status === 401 || resposta.status === 403) {
+      if (resposta.status === 400 || resposta.status === 403) {
         throw new ErroConfiguracaoIA('Chave da API inválida, expirada ou sem permissão. Verifique a configuração.');
       }
       if (resposta.status === 429) {
-        throw new Error('Muitas requisições em pouco tempo para o serviço de IA. Aguarde um instante e tente novamente.');
+        throw new Error('Limite gratuito de requisições do serviço de IA atingido por hoje. Aguarde e tente novamente mais tarde.');
       }
       const textoErro = await resposta.text().catch(() => '');
       throw new Error(`O serviço de IA recusou a requisição (HTTP ${resposta.status}). ${textoErro.slice(0, 220)}`);
     }
 
     const dados = await resposta.json();
-    const textoResposta = (dados.content || [])
-      .filter((bloco) => bloco.type === 'text')
+    const candidato = (dados.candidates || [])[0];
+
+    if (!candidato) {
+      throw new Error('O serviço de IA não devolveu nenhuma resposta. Tente novamente com a foto mais nítida.');
+    }
+    if (candidato.finishReason === 'SAFETY') {
+      throw new Error('O serviço de IA recusou analisar essa imagem. Tente outra foto da nota.');
+    }
+
+    const textoResposta = ((candidato.content || {}).parts || [])
+      .filter((bloco) => typeof bloco.text === 'string')
       .map((bloco) => bloco.text)
       .join('\n')
       .trim();
@@ -835,15 +848,15 @@ Priorize precisão acima de tudo: se um número estiver ilegível, borrado ou am
     els.corpo.innerHTML = `
       <div class="leitor-config">
         <p class="leitor-texto">
-          Para ler notas fiscais automaticamente, o app usa um serviço de IA.
-          Informe a chave de API uma única vez — ela fica salva só neste
-          aparelho e é usada apenas para consultar o serviço de IA.
+          Para ler notas fiscais automaticamente, o app usa a IA do Google
+          (Gemini). Informe a chave de API uma única vez — ela fica salva só
+          neste aparelho e é usada apenas para consultar o serviço de IA.
         </p>
         <div class="form-group">
-          <label for="leitor-config-chave">Chave da API</label>
-          <input type="password" id="leitor-config-chave" placeholder="sk-ant-..." autocomplete="off" autocapitalize="off" spellcheck="false">
+          <label for="leitor-config-chave">Chave da API (Gemini)</label>
+          <input type="password" id="leitor-config-chave" placeholder="AIza..." autocomplete="off" autocapitalize="off" spellcheck="false">
         </div>
-        <p class="leitor-dica">Não tem uma chave? Peça para quem administra o sistema da oficina.</p>
+        <p class="leitor-dica">Não tem uma chave? Gere uma de graça em aistudio.google.com (menu "Get API key").</p>
         <p class="form-erro" id="leitor-config-erro" hidden></p>
       </div>
     `;
