@@ -1,0 +1,2671 @@
+/* ======================================================================
+   MARTINS — Gestão de Oficina Mecânica
+   style.css — folha de estilos principal
+
+   Índice:
+   1. Reset
+   2. Design tokens (variáveis)
+   3. Layout base
+   4. Header
+   5. Views / conteúdo
+   6. Navegação inferior
+   7. Utilitários / estados vazios
+   8. Responsivo (tablet / desktop)
+   9. Componentes reutilizáveis (botões, formulários, modal, toast, fab,
+      card de listagem genérico)
+   10. Tela de Clientes
+   11. Tela de Ordens de Serviço
+   12. Leitor de nota fiscal (IA)
+   13. Histórico do Cliente
+   14. Tela de Orçamentos
+   15. Tela de Financeiro
+   16. Tela de Estoque de Peças
+   17. Pesquisa Global
+   18. Fotos da Ordem de Serviço
+   19. Checklist da Ordem de Serviço
+   ====================================================================== */
+
+
+/* ----------------------------------------------------------------------
+   1. Reset
+   ---------------------------------------------------------------------- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+}
+
+button {
+  font-family: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+svg {
+  display: block;
+}
+
+
+/* ----------------------------------------------------------------------
+   2. Design tokens
+   ---------------------------------------------------------------------- */
+:root {
+  /* Cores base — tema "oficina": aço escuro + acento laranja de segurança */
+  --color-bg: #1C1E22;
+  --color-surface: #24272C;
+  --color-surface-raised: #2C3038;
+  --color-border: #363B42;
+
+  --color-text: #F4F2EE;
+  --color-text-muted: #9AA0A8;
+
+  --color-accent: #FF6B35;      /* laranja de segurança — ação principal */
+  --color-accent-dim: #C9502384;
+  --color-warning: #FFC145;     /* amarelo de alerta — uso pontual */
+  --color-success: #4CAF7D;
+  --color-info: #4A9DE0;        /* azul informativo — usado em status "finalizada" */
+
+  /* Tipografia */
+  --font-display: 'Oswald', 'Arial Narrow', sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+
+  /* Espaçamento */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  /* Estrutura */
+  --header-height: 108px;
+  --nav-height: 68px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+}
+
+
+/* ----------------------------------------------------------------------
+   3. Layout base
+   ---------------------------------------------------------------------- */
+.app {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* ----------------------------------------------------------------------
+   4. Header
+   ---------------------------------------------------------------------- */
+.app-header {
+  position: relative;
+  padding: env(safe-area-inset-top, 0) var(--space-lg) var(--space-md);
+  background-color: var(--color-surface);
+  flex-shrink: 0;
+}
+
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--space-lg);
+}
+
+/* --- Botão de pesquisa global no header --- */
+.header-search-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.header-search-btn:hover,
+.header-search-btn:active {
+  background-color: var(--color-surface-raised);
+  color: var(--color-text);
+}
+
+.header-search-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.brand-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-accent);
+  color: var(--color-bg);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.brand-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 24px;
+  letter-spacing: 0.06em;
+  color: var(--color-text);
+}
+
+.brand-tagline {
+  margin-top: var(--space-xs);
+  margin-left: 44px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* Faixa diagonal — elemento de assinatura visual da marca */
+.header-stripe {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-accent) 0%, var(--color-warning) 100%);
+}
+
+
+/* ----------------------------------------------------------------------
+   5. Views / conteúdo
+   ---------------------------------------------------------------------- */
+.app-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-lg);
+  padding-bottom: calc(var(--nav-height) + var(--space-lg));
+}
+
+.view {
+  display: none;
+}
+
+.view.is-active {
+  display: block;
+  animation: view-in 0.18s ease-out;
+}
+
+@keyframes view-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+
+/* ----------------------------------------------------------------------
+   6. Navegação inferior
+   ---------------------------------------------------------------------- */
+.bottom-nav {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  height: var(--nav-height);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--color-text-muted);
+  position: relative;
+  transition: color 0.15s ease;
+}
+
+.nav-item .nav-icon {
+  transition: transform 0.15s ease;
+}
+
+.nav-label {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.nav-item.is-active {
+  color: var(--color-accent);
+}
+
+.nav-item.is-active .nav-icon {
+  transform: translateY(-1px);
+}
+
+.nav-item.is-active::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  width: 20px;
+  height: 3px;
+  border-radius: 2px;
+  background-color: var(--color-accent);
+}
+
+.nav-item:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+
+/* ----------------------------------------------------------------------
+   7. Utilitários / estados vazios
+   ---------------------------------------------------------------------- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-xl) var(--space-md);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.empty-state-icon {
+  color: var(--color-accent);
+  margin-bottom: var(--space-sm);
+}
+
+.empty-state h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 20px;
+  letter-spacing: 0.01em;
+}
+
+.empty-state p {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+
+/* ----------------------------------------------------------------------
+   8. Responsivo (tablet / desktop)
+   ---------------------------------------------------------------------- */
+@media (min-width: 720px) {
+  .app {
+    max-width: 480px;
+    margin: 0 auto;
+    box-shadow: 0 0 0 1px var(--color-border);
+    min-height: 100vh;
+  }
+}
+
+/* Respeita preferência por menos movimento */
+@media (prefers-reduced-motion: reduce) {
+  .view.is-active,
+  .nav-item .nav-icon,
+  .modal,
+  .modal-overlay,
+  .toast,
+  .fab,
+  .btn,
+  .os-card,
+  .orc-card,
+  .despesa-card,
+  .peca-card,
+  .cliente-card,
+  .hist-os-card,
+  .chip {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+
+/* ----------------------------------------------------------------------
+   9. Componentes reutilizáveis
+   Botões, campos de formulário, modal (bottom sheet), toast e FAB.
+   Pensados para servir qualquer tela futura (Ordens, Estoque...), não
+   só a de Clientes — evite estilos específicos de feature aqui.
+   ---------------------------------------------------------------------- */
+
+/* --- Botões --- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: 12px var(--space-md);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: filter 0.15s ease, transform 0.1s ease;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.btn-primary {
+  background-color: var(--color-accent);
+  color: #1A1300;
+}
+
+.btn-secondary {
+  background-color: var(--color-surface-raised);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.btn-danger {
+  background-color: transparent;
+  color: #FF6B6B;
+  border: 1px solid #5A2E2E;
+}
+
+.btn-whatsapp {
+  background-color: #25D366;
+  color: #08210F;
+}
+
+.btn:hover {
+  filter: brightness(1.08);
+}
+
+/* Anel de foco consistente para navegação por teclado, em qualquer
+   elemento clicável que ainda não tenha um estado de foco próprio. */
+.btn:focus-visible,
+.chip:focus-visible,
+.fab:focus-visible,
+.modal-fechar:focus-visible,
+.cliente-card:focus-visible,
+.os-card:focus-visible,
+.orc-card:focus-visible,
+.despesa-card:focus-visible,
+.peca-card:focus-visible,
+.cliente-whats-btn:focus-visible,
+.os-item-remover:focus-visible,
+.leitor-item-remover:focus-visible,
+.estoque-stepper-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* --- Campo de busca --- */
+.search-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.search-field input[type="search"] {
+  width: 100%;
+  padding: 11px var(--space-md) 11px 38px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+.search-field input[type="search"]::placeholder {
+  color: var(--color-text-muted);
+}
+
+.search-field input[type="search"]:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+/* Remove o "x" nativo de limpar em navegadores WebKit para usar visual próprio */
+.search-field input[type="search"]::-webkit-search-cancel-button {
+  filter: invert(1) opacity(0.5);
+}
+
+/* --- Formulários (usados dentro dos modais) --- */
+.form-group {
+  margin-bottom: var(--space-md);
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: var(--space-xs);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.form-optional {
+  font-weight: 400;
+  text-transform: none;
+  color: var(--color-text-muted);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 11px 12px;
+  background-color: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  resize: vertical;
+}
+
+.form-group select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%239AA0A8' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 34px;
+}
+
+.form-group select:disabled {
+  opacity: 0.55;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+/* Duas colunas lado a lado dentro de um formulário (ex: data + status) */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+}
+
+.form-erro {
+  padding: var(--space-sm) var(--space-md);
+  background-color: #3A1F1F;
+  border: 1px solid #5A2E2E;
+  border-radius: var(--radius-sm);
+  color: #FFAFAF;
+  font-size: 13px;
+}
+
+/* --- Modal (bottom sheet) --- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0);
+  pointer-events: none;
+  transition: background-color 0.2s ease;
+  z-index: 100;
+}
+
+.modal-overlay.is-open {
+  background-color: rgba(0, 0, 0, 0.55);
+  pointer-events: auto;
+}
+
+.modal {
+  width: 100%;
+  max-width: 480px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-surface);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.35);
+  transform: translateY(100%);
+  transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.modal-overlay.is-open .modal {
+  transform: translateY(0);
+}
+
+.modal-handle {
+  width: 36px;
+  height: 4px;
+  margin: var(--space-sm) auto 0;
+  border-radius: 2px;
+  background-color: var(--color-border);
+  flex-shrink: 0;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg) var(--space-sm);
+  flex-shrink: 0;
+}
+
+.modal-titulo {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 19px;
+  letter-spacing: 0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modal-fechar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--color-text-muted);
+}
+
+.modal-fechar:hover {
+  background-color: var(--color-surface-raised);
+  color: var(--color-text);
+}
+
+.modal-body {
+  padding: 0 var(--space-lg) var(--space-md);
+  overflow-y: auto;
+}
+
+.modal-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.modal-footer .btn {
+  flex: 1 1 auto;
+  min-width: 108px;
+}
+
+body.modal-aberto {
+  overflow: hidden;
+}
+
+/* --- Toast --- */
+.toast-host {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--nav-height) + var(--space-lg));
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: var(--space-sm);
+  max-width: calc(100% - var(--space-xl));
+  z-index: 200;
+  pointer-events: none;
+}
+
+.toast {
+  padding: 12px var(--space-lg);
+  background-color: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  text-align: center;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+
+.toast.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast-erro {
+  border-color: #5A2E2E;
+  color: #FFAFAF;
+}
+
+/* --- Floating Action Button --- */
+.fab {
+  position: fixed;
+  right: var(--space-lg);
+  bottom: calc(var(--nav-height) + var(--space-lg));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: var(--color-accent);
+  color: #1A1300;
+  box-shadow: 0 6px 16px rgba(255, 107, 53, 0.4);
+  transition: transform 0.15s ease;
+  z-index: 20;
+}
+
+.fab:active {
+  transform: scale(0.94);
+}
+
+/* --- Card de listagem genérico ---
+   Anatomia compartilhada por Ordens (.os-card), Orçamentos (.orc-card),
+   Despesas (.despesa-card) e Peças (.peca-card): retângulo com borda,
+   cabeçalho (`-top`) e rodapé (`-bottom`) com o valor em destaque
+   (`-valor`). Cada tela mantém suas próprias classes de conteúdo
+   (número/cliente/veículo/categoria etc.) nas seções 11, 14, 15 e 16 —
+   só a "casca" do card fica centralizada aqui, para não repetir a mesma
+   regra 4 vezes conforme novas telas de listagem forem criadas. */
+.os-card,
+.orc-card,
+.despesa-card,
+.peca-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-md);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.os-card:active,
+.orc-card:active,
+.despesa-card:active,
+.peca-card:active {
+  border-color: var(--color-accent);
+}
+
+.os-card-top,
+.orc-card-top,
+.despesa-card-top,
+.peca-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.os-card-bottom,
+.orc-card-bottom,
+.despesa-card-bottom,
+.peca-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.os-valor,
+.orc-valor,
+.despesa-valor,
+.peca-valor {
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+
+/* ----------------------------------------------------------------------
+   10. Tela de Clientes
+   ---------------------------------------------------------------------- */
+.clientes-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.view-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background-color: var(--color-bg);
+  padding-bottom: var(--space-xs);
+}
+
+.clientes-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.clientes-status {
+  padding: var(--space-lg);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.cliente-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.cliente-card:active {
+  border-color: var(--color-accent);
+}
+
+.cliente-avatar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: var(--color-surface-raised);
+  color: var(--color-accent);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.cliente-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cliente-nome {
+  font-size: 15px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cliente-sub {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cliente-whats-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  color: #25D366;
+  background-color: rgba(37, 211, 102, 0.12);
+}
+
+.cliente-whats-btn:disabled {
+  color: var(--color-text-muted);
+  background-color: transparent;
+}
+
+/* --- Detalhe do cliente (dentro do modal) --- */
+.detalhe-linha {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 14px;
+}
+
+.detalhe-linha:last-of-type {
+  border-bottom: none;
+}
+
+.detalhe-linha-bloco {
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.detalhe-rotulo {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.detalhe-valor {
+  text-align: right;
+  color: var(--color-text);
+}
+
+.detalhe-linha-bloco .detalhe-valor {
+  text-align: left;
+  line-height: 1.5;
+}
+
+.detalhe-secao {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-border);
+}
+
+.detalhe-secao-titulo {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-sm);
+}
+
+.detalhe-veiculos-lista {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.detalhe-veiculos-lista li {
+  padding: 8px 10px;
+  background-color: var(--color-surface-raised);
+  border-radius: var(--radius-sm);
+}
+
+.detalhe-vazio {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.confirmacao-texto {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text);
+}
+
+
+/* ----------------------------------------------------------------------
+   11. Tela de Ordens de Serviço
+   ---------------------------------------------------------------------- */
+.ordens-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.ordens-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+/* --- Chips de filtro por status --- */
+.chip-row {
+  display: flex;
+  gap: var(--space-sm);
+  overflow-x: auto;
+  padding-top: var(--space-sm);
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.chip-row::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.chip.is-active {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #1A1300;
+}
+
+/* --- Badge de status (usado na lista e no detalhe da OS) --- */
+.status-badge {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-badge-em_andamento {
+  background-color: rgba(255, 107, 53, 0.16);
+  color: var(--color-accent);
+}
+
+.status-badge-aguardando_pecas {
+  background-color: rgba(255, 193, 69, 0.16);
+  color: var(--color-warning);
+}
+
+.status-badge-finalizada {
+  background-color: rgba(74, 157, 224, 0.16);
+  color: var(--color-info);
+}
+
+.status-badge-entregue {
+  background-color: rgba(76, 175, 125, 0.16);
+  color: var(--color-success);
+}
+
+/* --- Card de OS na listagem (casca compartilhada: ver seção 9) --- */
+.os-numero {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+}
+
+.os-cliente {
+  font-size: 15px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.os-veiculo {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.os-data {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* --- Seções do formulário (Peças / Mão de obra) --- */
+.os-form-secao {
+  margin-bottom: var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+}
+
+.os-form-secao-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+}
+
+.os-form-secao-header h3 {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+}
+
+.btn-add-item {
+  padding: 5px 12px;
+  background-color: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.btn-add-item:hover {
+  border-color: var(--color-accent);
+}
+
+/* Mini formulário inline para adicionar peça/mão de obra */
+.os-add-item-form {
+  padding: var(--space-md);
+  margin-bottom: var(--space-sm);
+  background-color: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.os-add-item-form .form-group:last-of-type {
+  margin-bottom: var(--space-sm);
+}
+
+.btn-add-item-confirmar {
+  width: 100%;
+}
+
+/* Lista de itens já adicionados (peças / mão de obra) */
+.os-itens-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.os-itens-vazio {
+  padding: var(--space-sm) 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.os-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 10px;
+  background-color: var(--color-surface-raised);
+  border-radius: var(--radius-sm);
+}
+
+.os-item-row-leitura {
+  background-color: transparent;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  padding: 10px 0;
+}
+
+.os-item-row-leitura:last-of-type {
+  border-bottom: none;
+}
+
+.os-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.os-item-descricao {
+  font-size: 14px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.os-item-detalhe {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.os-item-marca-codigo {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Cabeçalho da seção de Peças com dois botões (ler nota + adicionar manual) */
+.os-form-secao-acoes {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.btn-ler-nota {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.os-item-acoes {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.os-item-subtotal {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.os-item-remover {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: var(--color-text-muted);
+}
+
+.os-item-remover:hover {
+  background-color: rgba(255, 107, 107, 0.14);
+  color: #FF6B6B;
+}
+
+/* Selo de item lançado automaticamente pelo leitor de nota fiscal */
+.badge-scanner {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  background-color: rgba(255, 193, 69, 0.16);
+  border-radius: 999px;
+  color: var(--color-warning);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* Subtotais de peças / mão de obra, exibidos acima do total no detalhe da OS */
+.os-subtotais-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px var(--space-md);
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* Linha de total (formulário e detalhe) */
+.os-total-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-sm);
+  padding: var(--space-md);
+  background-color: var(--color-surface-raised);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.os-total-linha strong {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--color-accent);
+}
+
+
+/* ----------------------------------------------------------------------
+   12. Leitor de nota fiscal (IA)
+   Modal próprio (mesma base visual do .modal-overlay), aberto por cima
+   do formulário de OS. Cobre: configuração da chave de IA, captura de
+   foto(s), carregamento e revisão editável dos itens extraídos.
+   ---------------------------------------------------------------------- */
+
+/* Empilha por cima de um modal de Ordens que já esteja aberto por baixo */
+.leitor-overlay {
+  z-index: 300;
+}
+
+.leitor-texto {
+  margin-bottom: var(--space-md);
+  font-size: 14px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.leitor-dica {
+  margin-top: var(--space-sm);
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* --- Captura de fotos --- */
+.leitor-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.leitor-thumb {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+.leitor-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.leitor-thumb-numero {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  padding: 1px 6px;
+  background-color: rgba(0, 0, 0, 0.6);
+  border-radius: 999px;
+  color: var(--color-text);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.leitor-thumb-remover {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.55);
+  color: #fff;
+}
+
+.leitor-thumb-add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 88px;
+  height: 88px;
+  background-color: var(--color-surface-raised);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.leitor-thumb-add span {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 0 4px;
+}
+
+.leitor-thumb-add:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+/* --- Carregando --- */
+.leitor-carregando {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-xl) 0;
+  text-align: center;
+}
+
+.leitor-spinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: leitor-girar 0.8s linear infinite;
+}
+
+@keyframes leitor-girar {
+  to { transform: rotate(360deg); }
+}
+
+/* --- Observação levantada pela IA (ex: trecho ilegível) --- */
+.leitor-observacao-ia {
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background-color: rgba(255, 193, 69, 0.1);
+  border: 1px solid rgba(255, 193, 69, 0.3);
+  border-radius: var(--radius-sm);
+  color: var(--color-warning);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* --- Lista de itens em revisão --- */
+.leitor-lista-itens {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.leitor-item {
+  padding: var(--space-sm) var(--space-md) var(--space-md);
+  background-color: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.leitor-item-alerta {
+  border-color: var(--color-warning);
+  background-color: rgba(255, 193, 69, 0.08);
+}
+
+.leitor-item-linha1 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.leitor-item-linha1 .leitor-campo-descricao {
+  flex: 1;
+}
+
+.leitor-item-linha2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.leitor-item-linha3 {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-sm);
+}
+
+.leitor-campo-rotulo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.leitor-campo {
+  padding: 9px 10px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 14px;
+}
+
+.leitor-campo:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.leitor-item-subtotal {
+  flex-shrink: 0;
+  padding-bottom: 9px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.leitor-item-remover {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: var(--color-text-muted);
+}
+
+.leitor-item-remover:hover {
+  background-color: rgba(255, 107, 107, 0.14);
+  color: #FF6B6B;
+}
+
+.leitor-item-aviso {
+  margin-top: var(--space-sm);
+  font-size: 12px;
+  color: var(--color-warning);
+  line-height: 1.4;
+}
+
+/* --- Banner de total (soma dos itens × total impresso na nota) --- */
+.leitor-banner-total {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  background-color: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.leitor-banner-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.leitor-banner-linha strong {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--color-text);
+}
+
+.leitor-banner-campo-total {
+  margin-bottom: var(--space-sm);
+}
+
+.leitor-banner-comparacao {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+.leitor-banner-ok .leitor-banner-comparacao {
+  color: var(--color-success);
+}
+
+.leitor-banner-alerta {
+  border-color: var(--color-warning);
+}
+
+.leitor-banner-alerta .leitor-banner-comparacao {
+  color: var(--color-warning);
+  font-weight: 500;
+}
+
+/* --- Indicador de imagem otimizada automaticamente (pré-processamento) --- */
+.leitor-thumb-otimizada {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  font-size: 12px;
+  line-height: 1;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.7));
+}
+
+.leitor-thumb-processando {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-surface-raised);
+  border: 1px dashed var(--color-border);
+}
+
+.leitor-spinner-mini {
+  width: 20px;
+  height: 20px;
+  border-width: 2px;
+}
+
+/* --- Destaque de baixa confiança (campos que a IA relatou incerteza) ---
+   Usa --color-info (azul) para não se confundir com o laranja/amarelo do
+   alerta de cálculo (--color-warning), já que são avisos de natureza
+   diferente: um é "a conta não fecha", o outro é "a IA não tem certeza". */
+.leitor-baixa-confianca {
+  border-color: var(--color-info) !important;
+  border-style: dashed !important;
+  background-color: rgba(74, 157, 224, 0.08) !important;
+}
+
+.leitor-item-baixa-confianca:not(.leitor-item-alerta) {
+  border-color: rgba(74, 157, 224, 0.4);
+}
+
+.leitor-item-confianca {
+  margin-top: var(--space-sm);
+  font-size: 12px;
+  color: var(--color-info);
+  line-height: 1.4;
+}
+
+
+/* ----------------------------------------------------------------------
+   13. Histórico do Cliente
+   Lista de Ordens de Serviço exibida dentro do modal de detalhe do
+   cliente (js/modules/clientes.js). Cada card é clicável e abre o
+   detalhe completo da OS na tela de Ordens (editar, duplicar, PDF...).
+   ---------------------------------------------------------------------- */
+.hist-os-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.hist-os-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-md);
+  background-color: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.1s ease, border-color 0.15s ease;
+}
+
+.hist-os-card:active {
+  transform: scale(0.98);
+}
+
+.hist-os-card:hover,
+.hist-os-card:focus-visible {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+.hist-os-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.hist-os-data {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.hist-os-servicos {
+  font-size: 13px;
+  color: var(--color-text);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.hist-os-pecas {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.hist-os-pecas strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.hist-os-valores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-md);
+  margin-top: 4px;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.hist-os-valores strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.hist-os-total {
+  margin-left: auto;
+}
+
+.hist-os-total strong {
+  font-family: var(--font-display);
+  color: var(--color-accent);
+  font-size: 14px;
+}
+
+
+/* ----------------------------------------------------------------------
+   14. Tela de Orçamentos
+   Reaproveita os componentes da tela de Ordens de Serviço (seção 11):
+   .status-badge, .chip, .os-item-row, .os-itens-lista, .os-form-secao,
+   .os-add-item-form, .os-total-linha, .os-subtotais-linha,
+   .detalhe-linha, .detalhe-secao e .confirmacao-texto. Aqui só ficam
+   os estilos próprios do card de orçamento, as cores de status
+   específicas (pendente/aprovado/recusado) e os elementos exclusivos
+   do fluxo de aprovação/conversão em OS.
+   ---------------------------------------------------------------------- */
+.orcamentos-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.orcamentos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+/* --- Cores de status próprias do orçamento (mesmo componente .status-badge) --- */
+.status-badge-pendente {
+  background-color: rgba(255, 193, 69, 0.16);
+  color: var(--color-warning);
+}
+
+.status-badge-aprovado {
+  background-color: rgba(76, 175, 125, 0.16);
+  color: var(--color-success);
+}
+
+.status-badge-recusado {
+  background-color: rgba(255, 107, 107, 0.16);
+  color: #FF6B6B;
+}
+
+/* --- Card de orçamento na listagem (casca compartilhada: ver seção 9) --- */
+.orc-numero {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+}
+
+.orc-cliente {
+  font-size: 15px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.orc-veiculo {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.orc-data {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* Selo exibido no card quando o orçamento já virou uma OS */
+.orc-convertido-tag {
+  display: inline-block;
+  width: fit-content;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-info);
+}
+
+/* --- Botões de status rápido (Pendente / Aprovado / Recusado) no detalhe --- */
+.orc-status-acoes {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.orc-status-btn {
+  flex: 1;
+  padding: 8px 4px;
+  background-color: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.orc-status-btn[data-status="pendente"].is-active {
+  background-color: rgba(255, 193, 69, 0.16);
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+.orc-status-btn[data-status="aprovado"].is-active {
+  background-color: rgba(76, 175, 125, 0.16);
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.orc-status-btn[data-status="recusado"].is-active {
+  background-color: rgba(255, 107, 107, 0.16);
+  border-color: #FF6B6B;
+  color: #FF6B6B;
+}
+
+/* Faixa exibida no detalhe quando o orçamento já foi convertido em OS */
+.orc-convertido-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  margin: var(--space-sm) 0 var(--space-md);
+  background-color: rgba(74, 157, 224, 0.1);
+  border: 1px solid rgba(74, 157, 224, 0.35);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.orc-convertido-info strong {
+  color: var(--color-info);
+}
+
+/* Aviso no topo do formulário de edição quando o orçamento já foi convertido */
+.orc-aviso-convertido {
+  padding: 10px var(--space-md);
+  margin-bottom: var(--space-md);
+  background-color: rgba(74, 157, 224, 0.1);
+  border: 1px solid rgba(74, 157, 224, 0.35);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.orc-aviso-convertido strong {
+  color: var(--color-info);
+}
+
+
+/* ----------------------------------------------------------------------
+   15. Tela de Financeiro
+   Reaproveita componentes já existentes (.view-toolbar, .search-field,
+   .chip-row, .status-badge, .detalhe-linha, .confirmacao-texto, .fab)
+   e acrescenta o dashboard (cards + gráficos SVG) e o card de despesa.
+   ---------------------------------------------------------------------- */
+.fin-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.fin-secao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.despesas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.fin-secao-titulo {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+/* --- Cards do dashboard --- */
+.fin-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+}
+
+.fin-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-md);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.fin-card-largo {
+  grid-column: span 2;
+}
+
+.fin-card-destaque {
+  border-color: var(--color-accent);
+  background-color: rgba(255, 107, 53, 0.08);
+}
+
+.fin-card-clicavel {
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.fin-card-clicavel:active {
+  border-color: var(--color-accent);
+}
+
+.fin-card-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.fin-card-valor {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.fin-card-valor.is-negative {
+  color: #FF6B6B;
+}
+
+.fin-card-delta {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.fin-card-delta.is-positive {
+  color: var(--color-success);
+}
+
+.fin-card-delta.is-negative {
+  color: #FF6B6B;
+}
+
+.fin-card-sub {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.fin-card-sub .is-negative {
+  color: #FF6B6B;
+  font-weight: 600;
+}
+
+/* --- Gráficos de evolução --- */
+.fin-grafico-card {
+  padding: var(--space-md);
+  margin-bottom: var(--space-sm);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.fin-grafico-legenda {
+  display: flex;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.legenda-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.legenda-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.legenda-dot-receita { background-color: var(--color-success); }
+.legenda-dot-despesa { background-color: #FF6B6B; }
+.legenda-dot-lucro { background-color: var(--color-accent); }
+
+.grafico-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.grafico-eixo {
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.grafico-eixo-zero {
+  stroke: var(--color-border);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.grafico-label-mes {
+  fill: var(--color-text-muted);
+  font-size: 9px;
+  font-family: var(--font-body);
+}
+
+.grafico-barra-receita { fill: var(--color-success); }
+.grafico-barra-despesa { fill: #FF6B6B; }
+
+.grafico-linha-lucro {
+  stroke: var(--color-accent);
+  stroke-width: 2;
+}
+
+.grafico-ponto {
+  fill: var(--color-accent);
+}
+
+/* --- Filtro de categoria (select ao lado dos chips de status) --- */
+.fin-select-categoria {
+  margin: 0;
+}
+
+.fin-select-categoria select {
+  width: 100%;
+}
+
+/* --- Checkbox de formulário (ex: "Já foi paga") --- */
+.form-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 14px;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.form-checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-accent);
+}
+
+/* --- Card de despesa na listagem (casca compartilhada: ver seção 9) --- */
+.despesa-categoria {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.despesa-descricao {
+  font-size: 15px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.despesa-data {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.despesa-data.is-negative {
+  color: #FF6B6B;
+  font-weight: 600;
+}
+
+/* Status "pago" reaproveita o verde de "aprovado" (ver seção 14) */
+.status-badge-pago {
+  background-color: rgba(76, 175, 125, 0.16);
+  color: var(--color-success);
+}
+
+
+/* ----------------------------------------------------------------------
+   16. Tela de Estoque de Peças
+   ---------------------------------------------------------------------- */
+.estoque-view {
+  padding: var(--space-md) var(--space-lg) calc(var(--nav-height) + var(--space-xl));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.estoque-banner-baixo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background-color: rgba(255, 193, 69, 0.14);
+  border: 1px solid rgba(255, 193, 69, 0.35);
+  color: var(--color-warning);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.estoque-banner-baixo button {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background-color: var(--color-warning);
+  color: #1A1300;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.estoque-btn-nota {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  align-self: flex-start;
+  margin-top: var(--space-sm);
+}
+
+/* --- Card de peça na listagem (casca compartilhada: ver seção 9) --- */
+.peca-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.peca-descricao {
+  font-size: 15px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.peca-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.peca-fornecedor {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Badges de estoque (normal / baixo), reaproveitando .status-badge --- */
+.status-badge-normal {
+  background-color: rgba(76, 175, 125, 0.16);
+  color: var(--color-success);
+}
+
+.status-badge-baixo {
+  background-color: rgba(255, 107, 107, 0.16);
+  color: #FF6B6B;
+}
+
+/* --- Ajuste rápido de estoque no modal de detalhe --- */
+.estoque-ajuste {
+  margin-top: var(--space-sm);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.estoque-ajuste-stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.estoque-stepper-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background-color: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.estoque-stepper-btn:active {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.estoque-ajuste-stepper input {
+  width: 56px;
+  text-align: center;
+  padding: 8px 4px;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+
+/* ----------------------------------------------------------------------
+   17. Pesquisa Global
+   Overlay de tela cheia (não é o bottom-sheet padrão de .modal-overlay,
+   pois precisa do campo de busca fixo no topo e da lista de resultados
+   ocupando o resto da tela). Fica acima de qualquer outro modal aberto.
+   ---------------------------------------------------------------------- */
+.busca-global-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.busca-global-overlay.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.busca-global-topo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+  padding: env(safe-area-inset-top, 0) var(--space-lg) var(--space-md);
+  padding-top: calc(env(safe-area-inset-top, 0) + var(--space-lg));
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.busca-global-campo {
+  flex: 1;
+}
+
+.busca-global-cancelar {
+  flex-shrink: 0;
+  padding: 8px 4px;
+  color: var(--color-accent);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.busca-global-filtros {
+  flex-shrink: 0;
+  padding: var(--space-md) var(--space-lg) 0;
+}
+
+.busca-global-resultados {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-md) var(--space-lg) var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.busca-global-grupo-titulo {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-sm);
+}
+
+.busca-global-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.busca-resultado-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  padding: var(--space-md);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  text-align: left;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.busca-resultado-item:hover,
+.busca-resultado-item:focus-visible {
+  border-color: var(--color-accent);
+  background-color: var(--color-surface-raised);
+  outline: none;
+}
+
+.busca-resultado-icone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface-raised);
+  color: var(--color-accent);
+}
+
+.busca-resultado-texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.busca-resultado-titulo {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.busca-resultado-subtitulo {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.busca-resultado-seta {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.busca-destaque {
+  background-color: rgba(255, 107, 53, 0.28);
+  color: var(--color-text);
+  border-radius: 3px;
+  padding: 0 1px;
+}
+
+.busca-global-vazio,
+.busca-global-dica {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xl) var(--space-md);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.busca-global-vazio svg,
+.busca-global-dica svg {
+  color: var(--color-text-muted);
+  opacity: 0.6;
+}
+
+.busca-global-vazio p,
+.busca-global-dica p {
+  font-size: 14px;
+  line-height: 1.5;
+  max-width: 280px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .busca-global-overlay,
+  .busca-resultado-item {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+
+/* ----------------------------------------------------------------------
+   18. Fotos da Ordem de Serviço
+   Galeria dentro do detalhe da OS (agrupada por antes/durante/depois),
+   mini formulário de captura e o visualizador de zoom em tela cheia.
+   Reaproveita os componentes genéricos da seção 9 (.chip, .btn-add-item,
+   .form-group) — só o que é específico de foto vive aqui.
+   ---------------------------------------------------------------------- */
+
+/* --- Galeria (dentro do detalhe da OS) --- */
+.os-fotos-galeria {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.os-fotos-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.os-fotos-grupo-titulo {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+}
+
+.os-fotos-linha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.os-foto-thumb {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+}
+
+.os-foto-thumb:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.os-foto-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.os-foto-remover {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.55);
+  color: #fff;
+}
+
+.os-foto-remover:hover {
+  background-color: rgba(255, 107, 107, 0.8);
+}
+
+/* --- Mini formulário de captura (dentro de .os-add-item-form, seção 9) --- */
+.btn-escolher-foto-btn {
+  width: 100%;
+  margin-bottom: var(--space-sm);
+}
+
+.foto-preview-pendente {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  margin-bottom: var(--space-sm);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg);
+}
+
+.foto-form-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+}
+
+/* --- Visualizador de foto em tela cheia (zoom) --- */
+.foto-zoom-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(10, 11, 13, 0.94);
+  animation: foto-zoom-surgir 0.15s ease;
+}
+
+@keyframes foto-zoom-surgir {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.foto-zoom-viewport {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  touch-action: pinch-zoom;
+}
+
+.foto-zoom-img {
+  max-width: 92vw;
+  max-height: 78vh;
+  object-fit: contain;
+  transition: transform 0.2s ease;
+  cursor: zoom-in;
+}
+
+.foto-zoom-img.is-zoomed {
+  max-width: none;
+  max-height: none;
+  width: 92vw;
+  transform: scale(2);
+  cursor: zoom-out;
+}
+
+.foto-zoom-fechar {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  right: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.12);
+  color: var(--color-text);
+  z-index: 1;
+}
+
+.foto-zoom-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.12);
+  color: var(--color-text);
+  font-size: 26px;
+  line-height: 1;
+  z-index: 1;
+}
+
+.foto-zoom-anterior { left: 12px; }
+.foto-zoom-proxima { right: 12px; }
+
+.foto-zoom-legenda {
+  max-width: 90vw;
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: max(var(--space-md), env(safe-area-inset-bottom));
+  color: var(--color-text);
+  font-size: 13px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.foto-zoom-legenda-vazia {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .foto-zoom-overlay,
+  .foto-zoom-img {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+
+/* ----------------------------------------------------------------------
+   19. Checklist da Ordem de Serviço
+   Lista de tarefas dentro do detalhe da OS (seção "Checklist do
+   serviço"), com marcação de concluído, remoção e um form simples de
+   adicionar item. Reaproveita .chip/.chip-row (seção 9/11) para as
+   sugestões rápidas e .btn-add-item para o botão de adicionar.
+   ---------------------------------------------------------------------- */
+
+.checklist-progresso {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.checklist-lista {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: var(--space-sm);
+}
+
+.checklist-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.checklist-item:last-child {
+  border-bottom: none;
+}
+
+.checklist-checkbox {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--color-border);
+  color: transparent;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.checklist-item.is-concluido .checklist-checkbox {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #1A1300;
+}
+
+.checklist-texto {
+  flex: 1;
+  font-size: 14px;
+  color: var(--color-text);
+  word-break: break-word;
+}
+
+.checklist-item.is-concluido .checklist-texto {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+
+.checklist-remover {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: var(--color-text-muted);
+}
+
+.checklist-remover:hover {
+  background-color: var(--color-surface-raised);
+  color: #FF6B6B;
+}
+
+.checklist-add-form {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.checklist-add-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 11px 12px;
+  background-color: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 15px;
+}
+
+.checklist-add-form input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.checklist-add-form .btn-add-item {
+  flex-shrink: 0;
+}
