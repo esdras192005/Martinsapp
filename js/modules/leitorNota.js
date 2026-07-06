@@ -593,6 +593,7 @@ Priorize precisão acima de tudo: se um número estiver ilegível, borrado ou am
       generationConfig: {
         maxOutputTokens: 8192,
         responseMimeType: 'application/json',
+        thinkingConfig: { thinkingBudget: 0 },
       },
     };
 
@@ -633,6 +634,9 @@ Priorize precisão acima de tudo: se um número estiver ilegível, borrado ou am
     }
     if (candidato.finishReason === 'SAFETY') {
       throw new Error('O serviço de IA recusou analisar essa imagem. Tente outra foto da nota.');
+    }
+    if (candidato.finishReason === 'MAX_TOKENS') {
+      throw new Error('A resposta da IA foi cortada por limite de tamanho. Tente novamente (ou com menos itens/páginas por vez).');
     }
 
     const textoResposta = ((candidato.content || {}).parts || [])
