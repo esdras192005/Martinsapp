@@ -109,11 +109,27 @@ const OrdensDB = (() => {
     return Number((calcularValorPecas(ordem) + calcularValorMaoDeObra(ordem)).toFixed(2));
   }
 
-  /** Soma apenas o valor das peças de uma ordem (quantidade × valorUnitario). */
+  /**
+   * Soma apenas o valor das peças de uma ordem (quantidade × valorUnitario).
+   * Peças marcadas como "compradaPor: cliente" (o cliente trouxe/pagou a
+   * peça por fora) NÃO entram nesse total — elas ficam registradas na OS
+   * só como informação, sem misturar com o faturamento de peças da oficina.
+   */
   function calcularValorPecas(ordem) {
     const total = (ordem.pecasUtilizadas || [])
+      .filter((item) => item.compradaPor !== 'cliente')
       .reduce((soma, item) => soma + (Number(item.quantidade) || 0) * (Number(item.valorUnitario) || 0), 0);
     return Number(total.toFixed(2));
+  }
+
+  /** Deriva o texto de "Serviços realizados" a partir da mão de obra lançada,
+   * para não manter dois campos (texto livre + itens de mão de obra) fazendo
+   * a mesma coisa — a mão de obra passa a ser a única fonte dessa descrição. */
+  function derivarDescricaoServicos(maoDeObraUtilizada) {
+    return (maoDeObraUtilizada || [])
+      .map((item) => (item.descricao || '').trim())
+      .filter(Boolean)
+      .join('\n');
   }
 
   /** Soma apenas o valor da mão de obra de uma ordem. */
@@ -136,7 +152,20 @@ const OrdensDB = (() => {
       valorTotalLido: item.valorTotalLido != null ? Number(item.valorTotalLido) : null,
       origem: item.origem || 'manual',
       confirmada: item.confirmada ?? true,
+      // Quem comprou a peça: 'oficina' (padrão, entra no faturamento de
+      // peças) ou 'cliente' (o cliente trouxe/pagou por fora — só fica
+      // registrada na OS como informação, sem contar no faturamento).
+      compradaPor: item.compradaPor === 'cliente' ? 'cliente' : 'oficina',
     }));
+  }
+
+  /** Normaliza a lista de notas fiscais (fotos das notinhas) fixadas na OS. */
+  function normalizarNotasFiscais(lista) {
+    return (lista || []).map((item) => ({
+      id: item.id || novoItemId(),
+      dataUrl: item.dataUrl || '',
+      criadaEm: item.criadaEm || new Date().toISOString(),
+    })).filter((item) => item.dataUrl);
   }
 
   /** Normaliza uma lista de mão de obra, garantindo id e campos consistentes. */
@@ -231,6 +260,7 @@ const OrdensDB = (() => {
     const maoDeObraUtilizada = normalizarMaoDeObra(dados.maoDeObraUtilizada);
     const fotos = normalizarFotos(dados.fotos);
     const checklist = normalizarChecklist(dados.checklist);
+    const notasFiscais = normalizarNotasFiscais(dados.notasFiscais);
 
     const ordem = MartinsDB.comCarimboDeCriacao({
       clienteId: dados.clienteId,
@@ -239,11 +269,15 @@ const OrdensDB = (() => {
       dataAbertura: dados.dataAbertura || new Date().toISOString(),
       dataConclusao: null,
       dataEntrega: null,
-      descricaoServicos: dados.descricaoServicos?.trim() || '',
+      // "Serviços realizados" deixou de ser um texto digitado à parte —
+      // agora é sempre derivado dos itens de mão de obra, pra não ter
+      // duas coisas fazendo a mesma função.
+      descricaoServicos: derivarDescricaoServicos(maoDeObraUtilizada),
       pecasUtilizadas,
       maoDeObraUtilizada,
       fotos,
       checklist,
+      notasFiscais,
       valorTotal: calcularValorTotal({ pecasUtilizadas, maoDeObraUtilizada }),
     });
 
@@ -302,8 +336,13 @@ const OrdensDB = (() => {
     if (dadosParciais.checklist) {
       mesclado.checklist = normalizarChecklist(dadosParciais.checklist);
     }
-    if (dadosParciais.descricaoServicos !== undefined) {
-      mesclado.descricaoServicos = dadosParciais.descricaoServicos?.trim() || '';
+    if (dadosParciais.notasFiscais) {
+      mesclado.notasFiscais = normalizarNotasFiscais(dadosParciais.notasFiscais);
+    }
+    if (dadosParciais.maoDeObraUtilizada) {
+      // "Serviços realizados" sempre reflete a mão de obra atual — não é
+      // mais um campo digitado à parte.
+      mesclado.descricaoServicos = derivarDescricaoServicos(mesclado.maoDeObraUtilizada);
     }
     if (dadosParciais.pecasUtilizadas || dadosParciais.maoDeObraUtilizada) {
       mesclado.valorTotal = calcularValorTotal(mesclado);
@@ -441,6 +480,41 @@ const OrdensDB = (() => {
   }
 
   /**
+   * Fixa uma nota fiscal (foto/imagem) na OS, geralmente logo depois de
+   * ler uma nota pelo leitor com IA — assim dá pra abrir e conferir a
+   * nota de novo mais tarde, sem precisar escanear tudo outra vez.
+   */
+  async function adicionarNotaFiscal(ordemId, dadosNota) {
+    const ordem = await buscarPorId(ordemId);
+    if (!ordem) {
+      throw new Error(`Ordem de serviço com id ${ordemId} não encontrada.`);
+    }
+    if (!dadosNota?.dataUrl) {
+      throw new Error('Nenhuma imagem de nota foi fornecida.');
+    }
+
+    const novaNota = {
+      id: novoItemId(),
+      dataUrl: dadosNota.dataUrl,
+      criadaEm: new Date().toISOString(),
+    };
+
+    const notasFiscais = [...(ordem.notasFiscais || []), novaNota];
+    await atualizar(ordemId, { notasFiscais });
+    return novaNota;
+  }
+
+  /** Remove uma nota fiscal fixada na OS pelo id. */
+  async function removerNotaFiscal(ordemId, notaId) {
+    const ordem = await buscarPorId(ordemId);
+    if (!ordem) {
+      throw new Error(`Ordem de serviço com id ${ordemId} não encontrada.`);
+    }
+    const notasFiscais = (ordem.notasFiscais || []).filter((n) => n.id !== notaId);
+    return atualizar(ordemId, { notasFiscais });
+  }
+
+  /**
    * Adiciona um item ao checklist de tarefas da OS (ex: "Trocar óleo").
    * Nasce sempre como pendente (`concluido: false`) — o texto de um item
    * concluído no template de sugestões não afeta os já adicionados.
@@ -527,7 +601,6 @@ const OrdensDB = (() => {
       veiculoId: original.veiculoId,
       status: STATUS.EM_ANDAMENTO,
       dataAbertura: new Date().toISOString(),
-      descricaoServicos: original.descricaoServicos,
       pecasUtilizadas: (original.pecasUtilizadas || []).map((item) => ({
         ...item,
         id: undefined,
@@ -587,6 +660,8 @@ const OrdensDB = (() => {
     adicionarFoto,
     removerFoto,
     atualizarFoto,
+    adicionarNotaFiscal,
+    removerNotaFiscal,
     adicionarItemChecklist,
     removerItemChecklist,
     atualizarItemChecklist,
