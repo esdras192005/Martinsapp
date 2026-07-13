@@ -29,8 +29,10 @@ const ClientesDB = (() => {
       throw new Error('O nome do cliente é obrigatório.');
     }
 
+    // Telefone é opcional: se foi informado, precisa ser válido (com DDD);
+    // se não foi informado, o cadastro segue sem ele.
     const telefone = apenasDigitos(dados.telefone);
-    if (!telefone || telefone.length < 10) {
+    if (dados.telefone && (!telefone || telefone.length < 10)) {
       throw new Error('Informe um telefone válido, com DDD.');
     }
 
