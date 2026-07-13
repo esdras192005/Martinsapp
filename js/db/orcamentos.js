@@ -64,9 +64,11 @@ const OrcamentosDB = (() => {
     return Number((calcularValorPecas(orcamento) + calcularValorMaoDeObra(orcamento)).toFixed(2));
   }
 
-  /** Soma apenas o valor das peças de um orçamento (quantidade × valorUnitario). */
+  /** Soma apenas o valor das peças de um orçamento (quantidade × valorUnitario).
+   * Peças marcadas como "compradaPor: cliente" não entram nesse total. */
   function calcularValorPecas(orcamento) {
     const total = (orcamento.pecas || [])
+      .filter((item) => item.compradaPor !== 'cliente')
       .reduce((soma, item) => soma + (Number(item.quantidade) || 0) * (Number(item.valorUnitario) || 0), 0);
     return Number(total.toFixed(2));
   }
@@ -89,6 +91,9 @@ const OrcamentosDB = (() => {
       quantidade: Number(item.quantidade) || 1,
       valorUnitario: Number(item.valorUnitario) || 0,
       origem: item.origem || 'manual',
+      // Quem comprou/vai comprar a peça: 'oficina' (padrão) ou 'cliente'
+      // (não entra no faturamento de peças quando a OS for gerada).
+      compradaPor: item.compradaPor === 'cliente' ? 'cliente' : 'oficina',
     }));
   }
 
