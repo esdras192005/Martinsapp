@@ -978,21 +978,11 @@ const OrdensModule = (() => {
       botoesStatus.push('<button type="button" class="btn btn-primary" id="btn-entregar-os">Marcar como entregue</button>');
     }
 
-    // OS já entregue não pode mais ser editada — evita alterar retroativamente
-    // um serviço que o cliente já retirou e pagou. As demais ações
-    // (duplicar, gerar PDF, excluir) continuam disponíveis normalmente.
-    const podeEditar = ordem.status !== STATUS.ENTREGUE;
-
     els.modalRodape.innerHTML = `
       ${botoesStatus.join('')}
       <button type="button" class="btn btn-secondary" id="btn-duplicar-os">Duplicar</button>
       <button type="button" class="btn btn-secondary" id="btn-pdf-os">Gerar PDF</button>
-      <button
-        type="button"
-        class="btn btn-secondary"
-        id="btn-editar-os"
-        ${podeEditar ? '' : 'disabled title="OS já entregue não pode mais ser editada"'}
-      >Editar</button>
+      <button type="button" class="btn btn-secondary" id="btn-editar-os">Editar</button>
       <button type="button" class="btn btn-danger" id="btn-excluir-os">Excluir</button>
     `;
 
@@ -1028,12 +1018,10 @@ const OrdensModule = (() => {
       });
     }
 
-    if (podeEditar) {
-      document.getElementById('btn-editar-os').addEventListener('click', () => {
-        fecharModal();
-        abrirFormulario(ordem);
-      });
-    }
+    document.getElementById('btn-editar-os').addEventListener('click', () => {
+      fecharModal();
+      abrirFormulario(ordem);
+    });
 
     document.getElementById('btn-excluir-os').addEventListener('click', () => {
       abrirConfirmacaoExclusao(ordem);
