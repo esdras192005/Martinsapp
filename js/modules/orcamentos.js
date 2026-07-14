@@ -455,4 +455,540 @@ const OrcamentosModule = (() => {
             <button type="button" class="btn-add-item" id="orc-btn-abrir-add-mao">+ Adicionar</button>
           </div>
           <div id="orc-form-add-mao" class="os-add-item-form" hidden></div>
-          <div id="orc-form-lista-ma
+          <div id="orc-form-lista-mao" class="os-itens-lista"></div>
+        </div>
+
+        <div class="os-total-linha">
+          <span>Valor total</span>
+          <strong id="orc-form-total">${formatarMoeda(0)}</strong>
+        </div>
+
+        <p class="form-erro" id="orc-form-erro" hidden></p>
+      </form>
+    `;
+
+    els.modalRodape.innerHTML = `
+      <button type="button" class="btn btn-secondary" id="btn-cancelar-form-orc">Cancelar</button>
+      <button type="submit" form="orc-form" class="btn btn-primary" id="btn-salvar-form-orc">Salvar</button>
+    `;
+
+    const erroEl = document.getElementById('orc-form-erro');
+
+    // Cliente -> filtra o select de veículo
+    document.getElementById('campo-orc-cliente').addEventListener('change', (e) => {
+      const clienteId = Number(e.target.value) || null;
+      const veiculoSelect = document.getElementById('campo-orc-veiculo');
+      if (!clienteId) {
+        veiculoSelect.innerHTML = '<option value="">Selecione o cliente primeiro</option>';
+        veiculoSelect.disabled = true;
+        return;
+      }
+      veiculoSelect.disabled = false;
+      veiculoSelect.innerHTML = montarOpcoesVeiculos(state.veiculos, clienteId, null);
+    });
+
+    // Botões "+ Adicionar" de peça / mão de obra
+    document.getElementById('orc-btn-abrir-add-peca').addEventListener('click', () => {
+      const container = document.getElementById('orc-form-add-peca');
+      const abrindo = container.hidden;
+      container.hidden = !abrindo;
+      if (abrindo) {
+        container.innerHTML = montarFormAddPeca();
+        cablearFormAddPeca();
+      }
+    });
+
+    document.getElementById('orc-btn-abrir-add-mao').addEventListener('click', () => {
+      const container = document.getElementById('orc-form-add-mao');
+      const abrindo = container.hidden;
+      container.hidden = !abrindo;
+      if (abrindo) {
+        container.innerHTML = montarFormAddMao();
+        cablearFormAddMao();
+      }
+    });
+
+    // Delegação de eventos para remover itens já adicionados
+    document.getElementById('orc-form-lista-pecas').addEventListener('click', (e) => {
+      const botao = e.target.closest('[data-remover-peca]');
+      if (!botao) return;
+      state.formPecas = state.formPecas.filter((item) => item.id !== botao.dataset.removerPeca);
+      renderListaPecasForm();
+    });
+
+    document.getElementById('orc-form-lista-mao').addEventListener('click', (e) => {
+      const botao = e.target.closest('[data-remover-mao]');
+      if (!botao) return;
+      state.formMaoDeObra = state.formMaoDeObra.filter((item) => item.id !== botao.dataset.removerMao);
+      renderListaMaoForm();
+    });
+
+    renderListaPecasForm();
+    renderListaMaoForm();
+
+    document.getElementById('btn-cancelar-form-orc').addEventListener('click', fecharModal);
+
+    document.getElementById('orc-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      erroEl.hidden = true;
+
+      const clienteId = Number(document.getElementById('campo-orc-cliente').value) || null;
+      const veiculoId = Number(document.getElementById('campo-orc-veiculo').value) || null;
+      const dataInput = document.getElementById('campo-orc-data').value;
+      const validadeInput = document.getElementById('campo-orc-validade').value;
+      const status = document.getElementById('campo-orc-status').value;
+      const observacoes = document.getElementById('campo-orc-observacoes').value.trim();
+
+      if (!clienteId) {
+        erroEl.textContent = 'Selecione um cliente.';
+        erroEl.hidden = false;
+        return;
+      }
+      if (!veiculoId) {
+        erroEl.textContent = 'Selecione um veículo.';
+        erroEl.hidden = false;
+        return;
+      }
+
+      const dados = {
+        clienteId,
+        veiculoId,
+        status,
+        dataCriacao: inputDateParaIso(dataInput, orcamento?.dataCriacao) || new Date().toISOString(),
+        validoAte: inputDateParaIso(validadeInput, orcamento?.validoAte),
+        observacoes,
+        pecas: state.formPecas,
+        maoDeObra: state.formMaoDeObra,
+      };
+
+      const botaoSalvar = document.getElementById('btn-salvar-form-orc');
+      botaoSalvar.disabled = true;
+
+      try {
+        if (editando) {
+          await OrcamentosDB.atualizar(orcamento.id, dados);
+          mostrarToast('Orçamento atualizado com sucesso.');
+        } else {
+          await OrcamentosDB.criar(dados);
+          mostrarToast('Orçamento criado com sucesso.');
+        }
+        fecharModal();
+        await carregarOrcamentos();
+      } catch (erro) {
+        erroEl.textContent = erro.message || 'Não foi possível salvar o orçamento.';
+        erroEl.hidden = false;
+        botaoSalvar.disabled = false;
+      }
+    });
+
+    abrirModal(editando ? `Editar Orçamento #${orcamento.id}` : 'Novo Orçamento');
+  }
+
+  /* --------------------------------------------------------------------
+     Modal: detalhe do orçamento
+     -------------------------------------------------------------------- */
+  async function abrirDetalhe(id) {
+    const orcamento = await OrcamentosDB.buscarPorId(id);
+    if (!orcamento) {
+      mostrarToast('Este orçamento não foi encontrado.', 'erro');
+      await carregarOrcamentos();
+      return;
+    }
+
+    state.modalModo = 'detalhe';
+    state.modalOrcamentoId = id;
+
+    const [cliente, veiculo] = await Promise.all([
+      ClientesDB.buscarPorId(orcamento.clienteId),
+      VeiculosDB.buscarPorId(orcamento.veiculoId),
+    ]);
+
+    const linhasPecas = orcamento.pecas.length
+      ? orcamento.pecas.map((item) => `
+          <div class="os-item-row os-item-row-leitura">
+            <div class="os-item-info">
+              <span class="os-item-descricao">${escapeHtml(item.descricao)}</span>
+              ${(item.marca || item.codigo) ? `<span class="os-item-marca-codigo">${escapeHtml([item.marca, item.codigo].filter(Boolean).join(' · '))}</span>` : ''}
+              <span class="os-item-detalhe">${item.quantidade} × ${formatarMoeda(item.valorUnitario)}</span>
+            </div>
+            <span class="os-item-subtotal">${formatarMoeda(item.quantidade * item.valorUnitario)}</span>
+          </div>
+        `).join('')
+      : '<p class="os-itens-vazio">Nenhuma peça lançada.</p>';
+
+    const linhasMao = orcamento.maoDeObra.length
+      ? orcamento.maoDeObra.map((item) => `
+          <div class="os-item-row os-item-row-leitura">
+            <span class="os-item-descricao">${escapeHtml(item.descricao)}</span>
+            <span class="os-item-subtotal">${formatarMoeda(item.valor)}</span>
+          </div>
+        `).join('')
+      : '<p class="os-itens-vazio">Nenhum serviço de mão de obra lançado.</p>';
+
+    const infoConvertido = orcamento.convertidoEmOrdemId ? `
+      <div class="orc-convertido-info">
+        <span>Convertido em <strong>OS #${orcamento.convertidoEmOrdemId}</strong> em ${formatarData(orcamento.convertidoEm)}</span>
+        <button type="button" class="btn btn-secondary" id="btn-ver-os-orc">Ver OS</button>
+      </div>
+    ` : '';
+
+    els.modalCorpo.innerHTML = `
+      <div class="detalhe-os">
+        <div class="orc-status-acoes" id="orc-status-acoes">
+          ${Object.values(STATUS).map((s) => `
+            <button type="button" class="orc-status-btn ${orcamento.status === s ? 'is-active' : ''}" data-status="${s}">${STATUS_LABELS[s]}</button>
+          `).join('')}
+        </div>
+
+        <div class="detalhe-linha">
+          <span class="detalhe-rotulo">Cliente</span>
+          <span class="detalhe-valor">${escapeHtml(cliente?.nome || 'Não encontrado')}</span>
+        </div>
+        <div class="detalhe-linha">
+          <span class="detalhe-rotulo">Veículo</span>
+          <span class="detalhe-valor">${escapeHtml(descreverVeiculo(veiculo))}</span>
+        </div>
+        <div class="detalhe-linha">
+          <span class="detalhe-rotulo">Criado em</span>
+          <span class="detalhe-valor">${formatarData(orcamento.dataCriacao)}</span>
+        </div>
+        ${orcamento.validoAte ? `
+          <div class="detalhe-linha">
+            <span class="detalhe-rotulo">Válido até</span>
+            <span class="detalhe-valor">${formatarData(orcamento.validoAte)}</span>
+          </div>` : ''}
+        <div class="detalhe-linha detalhe-linha-bloco">
+          <span class="detalhe-rotulo">Observações</span>
+          <span class="detalhe-valor">${orcamento.observacoes ? escapeHtml(orcamento.observacoes) : '—'}</span>
+        </div>
+
+        ${infoConvertido}
+
+        <div class="detalhe-secao">
+          <h3 class="detalhe-secao-titulo">Peças</h3>
+          ${linhasPecas}
+        </div>
+        <div class="detalhe-secao">
+          <h3 class="detalhe-secao-titulo">Mão de obra</h3>
+          ${linhasMao}
+        </div>
+
+        <div class="os-subtotais-linha">
+          <span>Valor das peças</span>
+          <span>${formatarMoeda(OrcamentosDB.calcularValorPecas(orcamento))}</span>
+        </div>
+        <div class="os-subtotais-linha">
+          <span>Valor da mão de obra</span>
+          <span>${formatarMoeda(OrcamentosDB.calcularValorMaoDeObra(orcamento))}</span>
+        </div>
+        <div class="os-total-linha">
+          <span>Valor total</span>
+          <strong>${formatarMoeda(orcamento.valorTotal)}</strong>
+        </div>
+      </div>
+    `;
+
+    // Botões de status rápido (Pendente / Aprovado / Recusado)
+    document.getElementById('orc-status-acoes').addEventListener('click', async (e) => {
+      const botao = e.target.closest('.orc-status-btn');
+      if (!botao || botao.classList.contains('is-active')) return;
+      try {
+        await OrcamentosDB.atualizarStatus(orcamento.id, botao.dataset.status);
+        await carregarOrcamentos();
+        await abrirDetalhe(orcamento.id);
+      } catch (erro) {
+        mostrarToast(erro.message || 'Não foi possível atualizar o status.', 'erro');
+      }
+    });
+
+    const podeConverter = !orcamento.convertidoEmOrdemId;
+
+    els.modalRodape.innerHTML = `
+      ${podeConverter ? '<button type="button" class="btn btn-primary" id="btn-converter-orc">Converter em OS</button>' : ''}
+      <button type="button" class="btn btn-secondary" id="btn-duplicar-orc">Duplicar</button>
+      <button type="button" class="btn btn-secondary" id="btn-editar-orc">Editar</button>
+      <button type="button" class="btn btn-danger" id="btn-excluir-orc">Excluir</button>
+    `;
+
+    if (podeConverter) {
+      document.getElementById('btn-converter-orc').addEventListener('click', async () => {
+        const botao = document.getElementById('btn-converter-orc');
+        botao.disabled = true;
+        try {
+          const resultado = await OrcamentosDB.converterEmOrdem(orcamento.id);
+          mostrarToast(`Orçamento convertido na OS #${resultado.ordem.id}.`);
+          fecharModal();
+          await carregarOrcamentos();
+          if (typeof OrdensModule !== 'undefined') {
+            OrdensModule.abrirDetalhePorId(resultado.ordem.id);
+          }
+        } catch (erro) {
+          mostrarToast(erro.message || 'Não foi possível converter o orçamento em OS.', 'erro');
+          botao.disabled = false;
+        }
+      });
+    }
+
+    const botaoVerOs = document.getElementById('btn-ver-os-orc');
+    if (botaoVerOs) {
+      botaoVerOs.addEventListener('click', () => {
+        fecharModal();
+        if (typeof OrdensModule !== 'undefined') {
+          OrdensModule.abrirDetalhePorId(orcamento.convertidoEmOrdemId);
+        }
+      });
+    }
+
+    document.getElementById('btn-editar-orc').addEventListener('click', () => {
+      fecharModal();
+      abrirFormulario(orcamento);
+    });
+
+    document.getElementById('btn-excluir-orc').addEventListener('click', () => {
+      abrirConfirmacaoExclusao(orcamento);
+    });
+
+    document.getElementById('btn-duplicar-orc').addEventListener('click', async () => {
+      const botao = document.getElementById('btn-duplicar-orc');
+      botao.disabled = true;
+      try {
+        const novo = await OrcamentosDB.duplicar(orcamento.id);
+        mostrarToast(`Orçamento #${orcamento.id} duplicado como #${novo.id}.`);
+        fecharModal();
+        await carregarOrcamentos();
+        await abrirFormulario(await OrcamentosDB.buscarPorId(novo.id));
+      } catch (erro) {
+        mostrarToast(erro.message || 'Não foi possível duplicar o orçamento.', 'erro');
+        botao.disabled = false;
+      }
+    });
+
+    abrirModal(`Orçamento #${orcamento.id}`);
+  }
+
+  /* --------------------------------------------------------------------
+     Modal: confirmação de exclusão
+     -------------------------------------------------------------------- */
+  function abrirConfirmacaoExclusao(orcamento) {
+    state.modalModo = 'exclusao';
+
+    els.modalCorpo.innerHTML = `
+      <p class="confirmacao-texto">
+        Tem certeza que deseja excluir o <strong>Orçamento #${orcamento.id}</strong>?
+        ${orcamento.convertidoEmOrdemId ? `A OS #${orcamento.convertidoEmOrdemId} já gerada a partir dele <strong>não</strong> será afetada.` : ''}
+        Esta ação não pode ser desfeita.
+      </p>
+    `;
+
+    els.modalRodape.innerHTML = `
+      <button type="button" class="btn btn-secondary" id="btn-cancelar-exclusao-orc">Cancelar</button>
+      <button type="button" class="btn btn-danger" id="btn-confirmar-exclusao-orc">Excluir</button>
+    `;
+
+    document.getElementById('btn-cancelar-exclusao-orc').addEventListener('click', () => {
+      fecharModal();
+      abrirDetalhe(orcamento.id);
+    });
+
+    document.getElementById('btn-confirmar-exclusao-orc').addEventListener('click', async () => {
+      const botao = document.getElementById('btn-confirmar-exclusao-orc');
+      botao.disabled = true;
+      try {
+        await OrcamentosDB.excluir(orcamento.id);
+        fecharModal();
+        mostrarToast('Orçamento excluído.');
+        await carregarOrcamentos();
+      } catch (erro) {
+        mostrarToast(erro.message || 'Não foi possível excluir o orçamento.', 'erro');
+        botao.disabled = false;
+      }
+    });
+
+    abrirModal('Excluir orçamento');
+  }
+
+  /* --------------------------------------------------------------------
+     Lista principal (com busca e filtro por status) — mantém o
+     histórico completo de orçamentos, incluindo os já convertidos.
+     -------------------------------------------------------------------- */
+  function renderLista() {
+    if (!els.lista) return;
+
+    if (state.carregando) {
+      els.lista.innerHTML = `<p class="clientes-status">Carregando orçamentos...</p>`;
+      return;
+    }
+
+    if (!state.orcamentos.length) {
+      const mensagem = (state.termoBusca || state.filtroStatus !== 'todos')
+        ? 'Nenhum orçamento encontrado para esse filtro.'
+        : 'Nenhum orçamento criado ainda. Toque em “+” para começar.';
+
+      els.lista.innerHTML = `
+        <div class="empty-state">
+          <h2>Nada por aqui</h2>
+          <p>${mensagem}</p>
+        </div>
+      `;
+      return;
+    }
+
+    els.lista.innerHTML = state.orcamentos.map((orcamento) => `
+      <article class="orc-card" data-id="${orcamento.id}" role="button" tabindex="0">
+        <div class="orc-card-top">
+          <span class="orc-numero">Orçamento #${orcamento.id}</span>
+          <span class="status-badge status-badge-${orcamento.status}">${STATUS_LABELS[orcamento.status]}</span>
+        </div>
+        <h3 class="orc-cliente">${escapeHtml(orcamento.cliente?.nome || 'Cliente não encontrado')}</h3>
+        <p class="orc-veiculo">${escapeHtml(descreverVeiculo(orcamento.veiculo))}</p>
+        ${orcamento.convertidoEmOrdemId ? `<span class="orc-convertido-tag">Convertido em OS #${orcamento.convertidoEmOrdemId}</span>` : ''}
+        <div class="orc-card-bottom">
+          <span class="orc-data">${formatarData(orcamento.dataCriacao)}</span>
+          <span class="orc-valor">${formatarMoeda(orcamento.valorTotal)}</span>
+        </div>
+      </article>
+    `).join('');
+  }
+
+  async function carregarOrcamentos() {
+    state.carregando = true;
+    renderLista();
+
+    try {
+      const [orcamentos, clientes, veiculos] = await Promise.all([
+        OrcamentosDB.listarTodos(),
+        ClientesDB.listarTodos(),
+        VeiculosDB.listarTodos(),
+      ]);
+
+      const clientesPorId = new Map(clientes.map((c) => [c.id, c]));
+      const veiculosPorId = new Map(veiculos.map((v) => [v.id, v]));
+
+      let enriquecidos = orcamentos.map((orcamento) => ({
+        ...orcamento,
+        cliente: clientesPorId.get(orcamento.clienteId) || null,
+        veiculo: veiculosPorId.get(orcamento.veiculoId) || null,
+      }));
+
+      if (state.filtroStatus === 'convertidos') {
+        enriquecidos = enriquecidos.filter((o) => Boolean(o.convertidoEmOrdemId));
+      } else if (state.filtroStatus !== 'todos') {
+        enriquecidos = enriquecidos.filter((o) => o.status === state.filtroStatus);
+      }
+
+      const alvo = state.termoBusca.trim().toLowerCase();
+      if (alvo) {
+        enriquecidos = enriquecidos.filter((o) => {
+          const nomeCliente = (o.cliente?.nome || '').toLowerCase();
+          const placa = (o.veiculo?.placa || '').toLowerCase();
+          const marcaModelo = [o.veiculo?.marca, o.veiculo?.modelo].filter(Boolean).join(' ').toLowerCase();
+          const numero = String(o.id);
+          return nomeCliente.includes(alvo) || placa.includes(alvo) || marcaModelo.includes(alvo) || numero.includes(alvo);
+        });
+      }
+
+      state.orcamentos = enriquecidos;
+    } catch (erro) {
+      console.error('Erro ao carregar orçamentos:', erro);
+      state.orcamentos = [];
+      mostrarToast('Erro ao carregar a lista de orçamentos.', 'erro');
+    } finally {
+      state.carregando = false;
+      renderLista();
+    }
+  }
+
+  /* --------------------------------------------------------------------
+     Montagem da tela (uma vez) e eventos
+     -------------------------------------------------------------------- */
+  function renderShell() {
+    const root = document.getElementById('view-orcamentos');
+    root.innerHTML = `
+      <div class="orcamentos-view">
+        <div class="view-toolbar">
+          <div class="search-field">
+            <svg class="search-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="7"/>
+              <path d="m21 21-4.3-4.3" stroke-linecap="round"/>
+            </svg>
+            <input type="search" id="orc-busca" placeholder="Buscar por cliente, placa ou nº do orçamento" autocomplete="off">
+          </div>
+          <div class="chip-row" id="orc-filtros">
+            <button type="button" class="chip is-active" data-status="todos">Todos</button>
+            <button type="button" class="chip" data-status="${STATUS.PENDENTE}">Pendente</button>
+            <button type="button" class="chip" data-status="${STATUS.APROVADO}">Aprovado</button>
+            <button type="button" class="chip" data-status="${STATUS.RECUSADO}">Recusado</button>
+            <button type="button" class="chip" data-status="convertidos">Convertidos em OS</button>
+          </div>
+        </div>
+        <div class="orcamentos-lista" id="orc-lista"></div>
+      </div>
+      <button type="button" class="fab" id="orc-fab" aria-label="Novo orçamento">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M12 5v14M5 12h14" stroke-linecap="round"/>
+        </svg>
+      </button>
+    `;
+
+    els.lista = document.getElementById('orc-lista');
+    els.busca = document.getElementById('orc-busca');
+    els.filtros = document.getElementById('orc-filtros');
+    els.fab = document.getElementById('orc-fab');
+  }
+
+  function bindEventos() {
+    let timeoutBusca = null;
+    els.busca.addEventListener('input', () => {
+      clearTimeout(timeoutBusca);
+      timeoutBusca = setTimeout(() => {
+        state.termoBusca = els.busca.value;
+        carregarOrcamentos();
+      }, 200);
+    });
+
+    els.filtros.addEventListener('click', (e) => {
+      const chip = e.target.closest('.chip');
+      if (!chip) return;
+      els.filtros.querySelectorAll('.chip').forEach((c) => c.classList.toggle('is-active', c === chip));
+      state.filtroStatus = chip.dataset.status;
+      carregarOrcamentos();
+    });
+
+    els.fab.addEventListener('click', () => abrirFormulario());
+
+    els.lista.addEventListener('click', (e) => {
+      const card = e.target.closest('.orc-card');
+      if (card) {
+        abrirDetalhe(Number(card.dataset.id));
+      }
+    });
+    Utils.ativarCardComTeclado(els.lista, '.orc-card');
+  }
+
+  /* --------------------------------------------------------------------
+     API pública do módulo (padrão exigido por App.modules)
+     -------------------------------------------------------------------- */
+  return {
+    name: NOME_TELA,
+
+    init() {
+      renderShell();
+      montarModal();
+      bindEventos();
+    },
+
+    onNavigate() {
+      carregarOrcamentos();
+    },
+
+    /**
+     * Ponto de entrada para outras telas (ex: Histórico do Cliente)
+     * abrirem o detalhe completo de um orçamento.
+     */
+    abrirDetalhePorId(id) {
+      return abrirDetalhe(id);
+    },
+  };
+})();
+
+App.modules.register(OrcamentosModule);
